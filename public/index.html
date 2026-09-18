@@ -42,19 +42,64 @@
 
     <!-- VISTA 2: ESTUDIANTE -->
     <section id="view-estudiante" class="view hidden">
+      
+      <!-- SELECCIÓN DE CURSO Y NAVEGACIÓN -->
       <div class="card">
-        <h2>Reservar Laboratorio Remoto</h2>
-        
+        <h2>Disponibilidad del Laboratorio</h2>
         <div class="form-group">
           <label>Seleccionar Curso:</label>
-          <select id="estudiante-cursos" onchange="cargarMaquinasDelCurso()"></select>
+          <select id="estudiante-cursos" onchange="actualizarTodoEstudiante()"></select>
+        </div>
+        <div class="form-group">
+          <label>Filtrar por RLAB:</label>
+          <select id="estudiante-maquinas-filtro" onchange="cargarCalendarioSemanal()"></select>
+        </div>
+      </div>
+
+      <!-- CALENDARIO SEMANAL INTERACTIVO -->
+      <div class="card margin-top">
+        <div class="calendar-header">
+          <button onclick="cambiarSemana(-1)" class="btn-secondary btn-sm">&laquo; Sem. Anterior</button>
+          <h3 id="calendar-week-title">Semana Actual</h3>
+          <button onclick="cambiarSemana(1)" class="btn-secondary btn-sm">Sem. Siguiente &raquo;</button>
+        </div>
+        
+        <div class="calendar-legend">
+          <span class="legend-item"><span class="badge badge-available"></span> Disponible (Haz clic)</span>
+          <span class="legend-item"><span class="badge badge-occupied"></span> Ocupado</span>
+          <span class="legend-item"><span class="badge badge-own"></span> Tu Reserva</span>
         </div>
 
+        <div class="table-responsive">
+          <table class="calendar-table">
+            <thead>
+              <tr>
+                <th>Hora</th>
+                <th>Lun</th>
+                <th>Mar</th>
+                <th>Mié</th>
+                <th>Jue</th>
+                <th>Vie</th>
+                <th>Sáb</th>
+                <th>Dom</th>
+              </tr>
+            </thead>
+            <tbody id="calendar-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- FORMULARIO DE RESERVA -->
+      <div class="card margin-top" id="seccion-formulario-reserva">
+        <h3>Realizar una Reserva</h3>
         <div class="form-group">
-          <label>Seleccionar Fecha y Hora de Inicio:</label>
+          <label>Máquina a Reservar:</label>
+          <select id="estudiante-maquinas-form"></select>
+        </div>
+        <div class="form-group">
+          <label>Fecha y Hora de Inicio:</label>
           <input type="datetime-local" id="reserva-fecha-inicio" required>
         </div>
-
         <div class="form-group">
           <label>Duración:</label>
           <select id="reserva-duracion">
@@ -62,18 +107,12 @@
             <option value="2">2 Horas</option>
           </select>
         </div>
-
-        <div class="form-group">
-          <label>Seleccionar RLAB (Máquina):</label>
-          <select id="estudiante-maquinas"></select>
-        </div>
-
         <button onclick="crearReserva()" class="btn-primary full-width">Confirmar Reserva</button>
       </div>
 
-      <!-- RESERVAS ACTIVAS Y FUTURAS -->
+      <!-- MIS RESERVAS ACTIVAS -->
       <div class="card margin-top">
-        <h3>Mis Reservas</h3>
+        <h3>Mis Reservas Activas y Futuras</h3>
         <div id="lista-mis-reservas" class="reservas-grid"></div>
       </div>
     </section>
@@ -89,9 +128,8 @@
 
       <!-- TAB 1: CURSOS Y MAQUINAS -->
       <div id="admin-cursos" class="tab-content active card">
-        <h3>Crear / Modificar Curso</h3>
+        <h3>Crear Curso</h3>
         <form onsubmit="guardarCurso(event)">
-          <input type="hidden" id="curso-id-edit">
           <div class="form-group"><label>Nombre del Curso:</label><input type="text" id="curso-nombre" required></div>
           <div class="form-group"><label>Código del Curso:</label><input type="text" id="curso-codigo" required></div>
           <button type="submit" class="btn-primary">Guardar Curso</button>
@@ -99,7 +137,6 @@
 
         <hr class="divider">
         <h3>Configurar RLAB (Máquinas Virtuales)</h3>
-        <p class="small-text">Cada curso puede tener hasta 4 RLABs. Cada máquina es única de un solo curso.</p>
         <form onsubmit="guardarMaquina(event)">
           <div class="form-group">
             <label>Curso:</label>
@@ -142,7 +179,7 @@
         <h3>Asignar Alumno a Curso</h3>
         <form onsubmit="asignarAlumnoCurso(event)">
           <div class="form-group"><label>Seleccionar Curso:</label><select id="asignar-curso-select"></select></div>
-          <div class="form-group"><label>ID o Correo de Alumno:</label><input type="email" id="asignar-alumno-email" required placeholder="correo@alumno.com"></div>
+          <div class="form-group"><label>Correo de Alumno:</label><input type="email" id="asignar-alumno-email" required placeholder="correo@alumno.com"></div>
           <button type="submit" class="btn-primary">Asignar a Curso</button>
         </form>
       </div>
@@ -150,17 +187,17 @@
       <!-- TAB 3: GESTIÓN CSV -->
       <div id="admin-csv" class="tab-content card hidden">
         <h3>Carga Masiva de Alumnos (CSV)</h3>
-        <p class="small-text">Formato del archivo CSV: <code>correo,contraseña,nombre_completo</code></p>
+        <p class="small-text">Formato CSV: <code>correo,contraseña,nombre_completo</code></p>
         <div class="form-group"><label>Curso Destino:</label><select id="csv-curso-select"></select></div>
         <div class="form-group"><input type="file" id="csv-file-agregar" accept=".csv"></div>
-        <button onclick="procesarCSVAgregar()" class="btn-primary">Procesar e Inscribir Alumnos</button>
+        <button onclick="procesarCSVAgregar()" class="btn-primary">Inscribir Alumnos vía CSV</button>
 
         <hr class="divider">
-        <h3>Eliminar Alumnos de un Curso mediante CSV</h3>
-        <p class="small-text">Formato del archivo CSV: <code>correo</code> (un correo por línea)</p>
+        <h3>Eliminar Alumnos de Curso (CSV)</h3>
+        <p class="small-text">Formato CSV: <code>correo</code> (un correo por línea)</p>
         <div class="form-group"><label>Curso Target:</label><select id="csv-curso-eliminar-select"></select></div>
         <div class="form-group"><input type="file" id="csv-file-eliminar" accept=".csv"></div>
-        <button onclick="procesarCSVEliminar()" class="btn-danger">Eliminar Alumnos del Curso</button>
+        <button onclick="procesarCSVEliminar()" class="btn-danger">Eliminar Alumnos vía CSV</button>
       </div>
 
       <!-- TAB 4: HISTORIAL -->
@@ -190,7 +227,6 @@
     <section id="view-profesor" class="view hidden">
       <div class="card">
         <h2>Panel de Profesor</h2>
-        <p>Seleccione un curso para evaluar rendimiento o realizar reservas de prueba.</p>
         <div class="form-group">
           <label>Ver Histórico del Curso:</label>
           <select id="profesor-curso-select" onchange="cargarHistorialProfesor()"></select>

@@ -2,17 +2,17 @@
 const SUPABASE_URL = "https://toyhvsnagunxxtlettrq.supabase.co"; // Pon tu URL real
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRveWh2c25hZ3VueHh0bGV0dHJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3NDc4MTksImV4cCI6MjEwNTMyMzgxOX0.e_HS5qmM7hOk9k41vBTuQbLtAOrXpakEk9m8-LAkf6Q";               // Pon tu Anon Key real
 
-// Usamos 'supabaseClient' para evitar conflicto con la librería global del CDN
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let currentUser = null;
 let currentProfile = null;
+let semanaOffset = 0; // 0 = Semana actual, 1 = Siguiente, -1 = Anterior
 
 // INICIALIZACIÓN
 document.addEventListener("DOMContentLoaded", async () => {
   try {
     const { data: { session }, error } = await supabaseClient.auth.getSession();
-    if (error) console.error("Error al obtener sesión:", error);
+    if (error) console.error("Error sesión:", error);
     
     if (session) {
       currentUser = session.user;
@@ -21,7 +21,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       mostrarVista("view-login");
     }
   } catch (err) {
-    console.error("Error en inicialización:", err);
+    console.error("Error al iniciar:", err);
   }
 });
 
@@ -50,7 +50,7 @@ async function iniciarSesion(e) {
     currentUser = data.user;
     await cargarPerfil();
   } catch (err) {
-    alert("Ocurrió un error inesperado: " + err.message);
+    alert("Error inesperado: " + err.message);
   }
 }
 
@@ -69,7 +69,7 @@ async function cargarPerfil() {
     .single();
 
   if (error || !profile) {
-    return alert("No se pudo cargar el perfil del usuario.");
+    return alert("Error al obtener el perfil de usuario.");
   }
 
   currentProfile = profile;
@@ -88,7 +88,7 @@ async function cargarPerfil() {
   }
 }
 
-// --- FLUJO ESTUDIANTE ---
+// --- FLUJO ESTUDIANTE Y CALENDARIO SEMANAL ---
 async function cargarCursosEstudiante() {
   const { data } = await supabaseClient
     .from("curso_estudiantes")
@@ -98,7 +98,7 @@ async function cargarCursosEstudiante() {
   const select = document.getElementById("estudiante-cursos");
   select.innerHTML = "";
   if (!data || data.length === 0) {
-    select.innerHTML = "<option>Sin cursos asignados</option>";
+    select.innerHTML = "<option value=''>Sin cursos asignados</option>";
     return;
   }
 
@@ -110,7 +110,13 @@ async function cargarCursosEstudiante() {
       select.appendChild(opt);
     }
   });
-  cargarMaquinasDelCurso();
+
+  await actualizarTodoEstudiante();
+}
+
+async function actualizarTodoEstudiante() {
+  await cargarMaquinasDelCurso();
+  await cargarCalendarioSemanal();
 }
 
 async function cargarMaquinasDelCurso() {
@@ -123,25 +129,137 @@ async function cargarMaquinasDelCurso() {
     .eq("curso_id", cursoId)
     .eq("activa", true);
 
-  const select = document.getElementById("estudiante-maquinas");
-  select.innerHTML = "";
+  const filtroSelect = document.getElementById("estudiante-maquinas-filtro");
+  const formSelect = document.getElementById("estudiante-maquinas-form");
+  
+  filtroSelect.innerHTML = "<option value='TODAS'>Todas las Máquinas (RLABs)</option>";
+  formSelect.innerHTML = "";
+
   if (maquinas) {
     maquinas.forEach(m => {
-      const opt = document.createElement("option");
-      opt.value = m.id;
-      opt.innerText = `RLAB ${m.numero_rlab}`;
-      select.appendChild(opt);
+      const opt1 = document.createElement("option");
+      opt1.value = m.id;
+      opt1.innerText = `RLAB ${m.numero_rlab}`;
+      filtroSelect.appendChild(opt1);
+
+      const opt2 = document.createElement("option");
+      opt2.value = m.id;
+      opt2.innerText = `RLAB ${m.numero_rlab}`;
+      formSelect.appendChild(opt2);
     });
   }
 }
 
+function cambiarSemana(delta) {
+  semanaOffset += delta;
+  cargarCalendarioSemanal();
+}
+
+function obtenerLunesSemana(offset = 0) {
+  const d = new Date();
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Ajustar para que Lunes sea día 1
+  const lunes = new Date(d.setDate(diff));
+  lunes.setDate(lunes.getDate() + (offset * 7));
+  lunes.setHours(0,0,0,0);
+  return lunes;
+}
+
+async function cargarCalendarioSemanal() {
+  const cursoId = document.getElementById("estudiante-cursos").value;
+  const maquinaFiltro = document.getElementById("estudiante-maquinas-filtro").value;
+  if (!cursoId) return;
+
+  const lunes = obtenerLunesSemana(semanaOffset);
+  const domingo = new Date(lunes);
+  domingo.setDate(domingo.getDate() + 6);
+  domingo.setHours(23,59,59,999);
+
+  document.getElementById("calendar-week-title").innerText = 
+    `Semana: ${lunes.toLocaleDateString()} - ${domingo.toLocaleDateString()}`;
+
+  // Consultar reservas de la semana para este curso
+  let query = supabaseClient
+    .from("reservas")
+    .select("*, maquinas(numero_rlab)")
+    .eq("curso_id", cursoId)
+    .gte("fecha_inicio", lunes.toISOString())
+    .lte("fecha_fin", domingo.toISOString());
+
+  if (maquinaFiltro && maquinaFiltro !== "TODAS") {
+    query = query.eq("maquina_id", maquinaFiltro);
+  }
+
+  const { data: reservas } = await query;
+
+  // Construir la matriz de horas (8am a 8pm)
+  const tbody = document.getElementById("calendar-body");
+  tbody.innerHTML = "";
+
+  for (let hora = 8; hora <= 20; hora++) {
+    const tr = document.createElement("tr");
+    
+    // Columna de Hora
+    const tdHora = document.createElement("td");
+    tdHora.innerText = `${hora.toString().padStart(2, '0')}:00`;
+    tr.appendChild(tdHora);
+
+    // 7 días (Lunes a Domingo)
+    for (let i = 0; i < 7; i++) {
+      const fechaCelda = new Date(lunes);
+      fechaCelda.setDate(fechaCelda.getDate() + i);
+      fechaCelda.setHours(hora, 0, 0, 0);
+
+      const fechaFinCelda = new Date(fechaCelda);
+      fechaFinCelda.setHours(hora + 1, 0, 0, 0);
+
+      const td = document.createElement("td");
+      td.className = "slot-cell";
+
+      // Comprobar si hay reserva en este bloque
+      const reservaEncontrada = reservas?.find(r => {
+        const rInicio = new Date(r.fecha_inicio);
+        const rFin = new Date(r.fecha_fin);
+        return fechaCelda < rFin && fechaFinCelda > rInicio;
+      });
+
+      if (reservaEncontrada) {
+        if (reservaEncontrada.usuario_id === currentUser.id) {
+          td.classList.add("slot-own");
+          td.innerText = `Tu Reserva (RLAB ${reservaEncontrada.maquinas?.numero_rlab})`;
+        } else {
+          td.classList.add("slot-occupied");
+          td.innerText = `Ocupado (RLAB ${reservaEncontrada.maquinas?.numero_rlab})`;
+        }
+      } else {
+        td.classList.add("slot-available");
+        td.innerText = "Disponible";
+        // Al hacer clic, llena la fecha/hora en el formulario
+        td.onclick = () => preseleccionarHorario(fechaCelda);
+      }
+
+      tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
+  }
+}
+
+function preseleccionarHorario(fecha) {
+  // Formatear para <input type="datetime-local"> (YYYY-MM-DDTHH:mm)
+  const tzoffset = (new Date()).getTimezoneOffset() * 60000;
+  const localISOTime = (new Date(fecha - tzoffset)).toISOString().slice(0, 16);
+  
+  document.getElementById("reserva-fecha-inicio").value = localISOTime;
+  document.getElementById("seccion-formulario-reserva").scrollIntoView({ behavior: 'smooth' });
+}
+
 async function crearReserva() {
   const cursoId = document.getElementById("estudiante-cursos").value;
-  const maquinaId = document.getElementById("estudiante-maquinas").value;
+  const maquinaId = document.getElementById("estudiante-maquinas-form").value;
   const fechaInicioInput = document.getElementById("reserva-fecha-inicio").value;
   const duracionHoras = parseInt(document.getElementById("reserva-duracion").value);
 
-  if (!fechaInicioInput || !maquinaId) return alert("Complete todos los campos");
+  if (!fechaInicioInput || !maquinaId) return alert("Complete la fecha y la máquina");
 
   const fechaInicio = new Date(fechaInicioInput);
   const fechaFin = new Date(fechaInicio.getTime() + duracionHoras * 60 * 60 * 1000);
@@ -155,10 +273,11 @@ async function crearReserva() {
   });
 
   if (error) {
-    alert("No se pudo realizar la reserva. El horario o máquina seleccionada ya se encuentra reservada.");
+    alert("No se pudo realizar la reserva. La máquina en ese horario ya está ocupada.");
   } else {
-    alert("¡Reserva realizada con éxito!");
-    cargarMisReservas();
+    alert("¡Reserva realizada exitosamente!");
+    await cargarMisReservas();
+    await cargarCalendarioSemanal();
   }
 }
 
@@ -193,7 +312,6 @@ async function cargarMisReservas() {
   }
 }
 
-// CONEXIÓN ANYDESK
 async function conectarAnydesk(id, password) {
   try {
     await navigator.clipboard.writeText(password);
@@ -288,7 +406,6 @@ async function asignarAlumnoCurso(e) {
   else alert("Alumno asignado al curso exitosamente");
 }
 
-// CSV BATCH
 async function procesarCSVAgregar() {
   const fileInput = document.getElementById("csv-file-agregar");
   const curso_id = document.getElementById("csv-curso-select").value;
@@ -327,7 +444,6 @@ async function procesarCSVEliminar() {
   alert(`Alumnos removidos del curso: ${data.removedCount}`);
 }
 
-// HISTORIAL Y PROFESOR
 async function cargarHistorial() {
   const curso_id = document.getElementById("historial-curso-select").value;
   const { data } = await supabaseClient
@@ -386,7 +502,6 @@ async function cargarHistorialProfesor() {
   }
 }
 
-// PERFIL
 function mostrarEditarPerfil() { document.getElementById("modal-perfil").classList.remove("hidden"); }
 function cerrarModalPerfil() { document.getElementById("modal-perfil").classList.add("hidden"); }
 
