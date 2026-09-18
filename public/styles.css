@@ -1,0 +1,105 @@
+:root {
+  --primary: #0052cc;
+  --primary-hover: #003d99;
+  --bg: #f4f6f9;
+  --card-bg: #ffffff;
+  --text: #172b4d;
+  --text-muted: #5e6c84;
+  --border: #dfe1e6;
+  --danger: #de350b;
+  --success: #36b37e;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+
+body { background-color: var(--bg); color: var(--text); padding-bottom: 40px; }
+
+.app-header {
+  background-color: var(--primary);
+  color: white;
+  padding: 1.5rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.app-header h1 { font-size: 1.8rem; letter-spacing: 2px; }
+.subtitle { font-size: 0.85rem; opacity: 0.9; }
+
+.main-container { max-width: 900px; margin: 1.5rem auto; padding: 0 1rem; }
+
+.card {
+  background: var(--card-bg);
+  border-radius: 8px;
+  padding: 1.5rem;
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.margin-top { margin-top: 1.5rem; }
+.hidden { display: none !important; }
+.divider { margin: 1.5rem 0; border: 0; border-top: 1px solid var(--border); }
+
+.form-group { margin-bottom: 1rem; }
+.form-group label { display: block; margin-bottom: 0.4rem; font-weight: 600; font-size: 0.9rem; }
+input, select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 1rem;
+  background-color: #fafbfc;
+}
+
+button {
+  padding: 0.75rem 1.2rem;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-primary { background: var(--primary); color: white; }
+.btn-primary:hover { background: var(--primary-hover); }
+.btn-secondary { background: #ebecf0; color: var(--text); }
+.btn-danger { background: var(--danger); color: white; }
+.btn-sm { padding: 0.4rem 0.8rem; font-size: 0.85rem; }
+.full-width { width: 100%; }
+
+/* Tabs Admin */
+.tabs { display: flex; gap: 0.5rem; margin-bottom: 1rem; overflow-x: auto; }
+.tab-btn { background: #e0e0e0; border: none; padding: 0.6rem 1rem; border-radius: 4px; }
+.tab-btn.active { background: var(--primary); color: white; }
+
+/* Grid de Reservas */
+.reservas-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; margin-top: 1rem; }
+.reserva-card { border: 1px solid var(--border); padding: 1rem; border-radius: 6px; background: #fff; }
+.reserva-card.active-now { border-color: var(--success); background-color: #e3fcef; }
+
+.btn-connect {
+  background-color: var(--success);
+  color: white;
+  width: 100%;
+  margin-top: 0.5rem;
+  font-size: 1.1rem;
+}
+
+/* Tabla */
+.table-responsive { overflow-x: auto; margin-top: 1rem; }
+table { width: 100%; border-collapse: collapse; text-align: left; }
+th, td { padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+th { background-color: #f4f5f7; }
+
+/* Modal */
+.modal { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; }
+.modal-content { width: 90%; max-width: 450px; }
+
+/* Adaptación Celular Mobile-First */
+@media (max-width: 600px) {
+  .app-header { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+  .user-info { display: flex; gap: 0.5rem; align-items: center; width: 100%; justify-content: space-between; }
+  button { padding: 0.85rem; } /* Touch friendly targets */
+}

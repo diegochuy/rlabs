@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>R-LABS - Laboratorios Remotos</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+  <!-- ENCABEZADO PRINCIPAL -->
+  <header class="app-header">
+    <div class="header-container">
+      <h1>R-LABS</h1>
+      <p class="subtitle">Laboratorios Remotos</p>
+    </div>
+    <div id="user-info" class="user-info hidden">
+      <span id="user-display-name"></span>
+      <button onclick="mostrarEditarPerfil()" class="btn-secondary btn-sm">Mi Perfil</button>
+      <button onclick="cerrarSesion()" class="btn-danger btn-sm">Cerrar Sesión</button>
+    </div>
+  </header>
+
+  <main class="main-container">
+
+    <!-- VISTA 1: LOGIN -->
+    <section id="view-login" class="card view">
+      <h2>Iniciar Sesión</h2>
+      <form id="form-login" onsubmit="iniciarSesion(event)">
+        <div class="form-group">
+          <label>Correo Electrónico:</label>
+          <input type="email" id="login-email" required placeholder="ejemplo@estudiante.edu">
+        </div>
+        <div class="form-group">
+          <label>Contraseña:</label>
+          <input type="password" id="login-password" required>
+        </div>
+        <button type="submit" class="btn-primary full-width">Ingresar</button>
+      </form>
+    </section>
+
+    <!-- VISTA 2: ESTUDIANTE -->
+    <section id="view-estudiante" class="view hidden">
+      <div class="card">
+        <h2>Reservar Laboratorio Remoto</h2>
+        
+        <div class="form-group">
+          <label>Seleccionar Curso:</label>
+          <select id="estudiante-cursos" onchange="cargarMaquinasDelCurso()"></select>
+        </div>
+
+        <div class="form-group">
+          <label>Seleccionar Fecha y Hora de Inicio:</label>
+          <input type="datetime-local" id="reserva-fecha-inicio" required>
+        </div>
+
+        <div class="form-group">
+          <label>Duración:</label>
+          <select id="reserva-duracion">
+            <option value="1">1 Hora</option>
+            <option value="2">2 Horas</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Seleccionar RLAB (Máquina):</label>
+          <select id="estudiante-maquinas"></select>
+        </div>
+
+        <button onclick="crearReserva()" class="btn-primary full-width">Confirmar Reserva</button>
+      </div>
+
+      <!-- RESERVAS ACTIVAS Y FUTURAS -->
+      <div class="card margin-top">
+        <h3>Mis Reservas</h3>
+        <div id="lista-mis-reservas" class="reservas-grid"></div>
+      </div>
+    </section>
+
+    <!-- VISTA 3: ADMINISTRADOR -->
+    <section id="view-admin" class="view hidden">
+      <div class="tabs">
+        <button class="tab-btn active" onclick="cambiarTabAdmin('admin-cursos')">Cursos y RLABs</button>
+        <button class="tab-btn" onclick="cambiarTabAdmin('admin-usuarios')">Usuarios y Asignación</button>
+        <button class="tab-btn" onclick="cambiarTabAdmin('admin-csv')">Gestión CSV</button>
+        <button class="tab-btn" onclick="cambiarTabAdmin('admin-historial')">Histórico</button>
+      </div>
+
+      <!-- TAB 1: CURSOS Y MAQUINAS -->
+      <div id="admin-cursos" class="tab-content active card">
+        <h3>Crear / Modificar Curso</h3>
+        <form onsubmit="guardarCurso(event)">
+          <input type="hidden" id="curso-id-edit">
+          <div class="form-group"><label>Nombre del Curso:</label><input type="text" id="curso-nombre" required></div>
+          <div class="form-group"><label>Código del Curso:</label><input type="text" id="curso-codigo" required></div>
+          <button type="submit" class="btn-primary">Guardar Curso</button>
+        </form>
+
+        <hr class="divider">
+        <h3>Configurar RLAB (Máquinas Virtuales)</h3>
+        <p class="small-text">Cada curso puede tener hasta 4 RLABs. Cada máquina es única de un solo curso.</p>
+        <form onsubmit="guardarMaquina(event)">
+          <div class="form-group">
+            <label>Curso:</label>
+            <select id="maquina-curso-select" required></select>
+          </div>
+          <div class="form-group">
+            <label>Número de RLAB (1 al 4):</label>
+            <input type="number" id="maquina-numero" min="1" max="4" required>
+          </div>
+          <div class="form-group">
+            <label>ID AnyDesk:</label>
+            <input type="text" id="maquina-anydesk-id" required placeholder="ej. 123 456 789">
+          </div>
+          <div class="form-group">
+            <label>Contraseña AnyDesk:</label>
+            <input type="text" id="maquina-anydesk-pass" required>
+          </div>
+          <button type="submit" class="btn-primary">Asignar / Actualizar RLAB</button>
+        </form>
+      </div>
+
+      <!-- TAB 2: USUARIOS Y ASIGNACIÓN -->
+      <div id="admin-usuarios" class="tab-content card hidden">
+        <h3>Agregar Alumno / Profesor</h3>
+        <form onsubmit="crearUsuarioAdmin(event)">
+          <div class="form-group"><label>Correo:</label><input type="email" id="user-email" required></div>
+          <div class="form-group"><label>Contraseña:</label><input type="text" id="user-password" value="RLabs2026!" required></div>
+          <div class="form-group"><label>Nombre Completo:</label><input type="text" id="user-nombre" required></div>
+          <div class="form-group">
+            <label>Rol:</label>
+            <select id="user-rol">
+              <option value="estudiante">Estudiante</option>
+              <option value="profesor">Profesor</option>
+            </select>
+          </div>
+          <button type="submit" class="btn-primary">Crear Usuario</button>
+        </form>
+
+        <hr class="divider">
+        <h3>Asignar Alumno a Curso</h3>
+        <form onsubmit="asignarAlumnoCurso(event)">
+          <div class="form-group"><label>Seleccionar Curso:</label><select id="asignar-curso-select"></select></div>
+          <div class="form-group"><label>ID o Correo de Alumno:</label><input type="email" id="asignar-alumno-email" required placeholder="correo@alumno.com"></div>
+          <button type="submit" class="btn-primary">Asignar a Curso</button>
+        </form>
+      </div>
+
+      <!-- TAB 3: GESTIÓN CSV -->
+      <div id="admin-csv" class="tab-content card hidden">
+        <h3>Carga Masiva de Alumnos (CSV)</h3>
+        <p class="small-text">Formato del archivo CSV: <code>correo,contraseña,nombre_completo</code></p>
+        <div class="form-group"><label>Curso Destino:</label><select id="csv-curso-select"></select></div>
+        <div class="form-group"><input type="file" id="csv-file-agregar" accept=".csv"></div>
+        <button onclick="procesarCSVAgregar()" class="btn-primary">Procesar e Inscribir Alumnos</button>
+
+        <hr class="divider">
+        <h3>Eliminar Alumnos de un Curso mediante CSV</h3>
+        <p class="small-text">Formato del archivo CSV: <code>correo</code> (un correo por línea)</p>
+        <div class="form-group"><label>Curso Target:</label><select id="csv-curso-eliminar-select"></select></div>
+        <div class="form-group"><input type="file" id="csv-file-eliminar" accept=".csv"></div>
+        <button onclick="procesarCSVEliminar()" class="btn-danger">Eliminar Alumnos del Curso</button>
+      </div>
+
+      <!-- TAB 4: HISTORIAL -->
+      <div id="admin-historial" class="tab-content card hidden">
+        <h3>Historial de Reservas</h3>
+        <div class="form-group">
+          <label>Filtrar por Curso:</label>
+          <select id="historial-curso-select" onchange="cargarHistorial()"></select>
+        </div>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Usuario</th>
+                <th>Máquina</th>
+                <th>Inicio</th>
+                <th>Fin</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-historial-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- VISTA 4: PROFESOR -->
+    <section id="view-profesor" class="view hidden">
+      <div class="card">
+        <h2>Panel de Profesor</h2>
+        <p>Seleccione un curso para evaluar rendimiento o realizar reservas de prueba.</p>
+        <div class="form-group">
+          <label>Ver Histórico del Curso:</label>
+          <select id="profesor-curso-select" onchange="cargarHistorialProfesor()"></select>
+        </div>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Usuario</th>
+                <th>Máquina</th>
+                <th>Inicio</th>
+                <th>Fin</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-profesor-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- MODAL PERFIL -->
+    <div id="modal-perfil" class="modal hidden">
+      <div class="modal-content card">
+        <h3>Mi Perfil</h3>
+        <div class="form-group"><label>Nombre Completo:</label><input type="text" id="perfil-nombre"></div>
+        <div class="form-group"><label>Nueva Contraseña:</label><input type="password" id="perfil-pass" placeholder="Dejar en blanco para conservar"></div>
+        <button onclick="guardarPerfil()" class="btn-primary">Actualizar Datos</button>
+        <button onclick="cerrarModalPerfil()" class="btn-secondary">Cancelar</button>
+      </div>
+    </div>
+
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
