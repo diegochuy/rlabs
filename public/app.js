@@ -1,6 +1,6 @@
 // CONFIGURACIÓN DE SUPABASE
-const SUPABASE_URL = "https://TU-PROYECTO.supabase.co"; // REEMPLAZAR
-const SUPABASE_ANON_KEY = "TU-ANON-KEY"; // REEMPLAZAR
+const SUPABASE_URL = "https://toyhvsnagunxxtlettrq.supabase.co/rest/v1/"; // REEMPLAZAR
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRveWh2c25hZ3VueHh0bGV0dHJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3NDc4MTksImV4cCI6MjEwNTMyMzgxOX0.e_HS5qmM7hOk9k41vBTuQbLtAOrXpakEk9m8-LAkf6Q"; // REEMPLAZAR
 
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let currentUser = null;
