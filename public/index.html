@@ -3,256 +3,363 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>R-LABS - Laboratorios Remotos</title>
+  <title>UNIVTEC - Laboratorios Virtuales & Remotos</title>
+  <!-- Fuente Inter desde Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
-  <!-- ENCABEZADO PRINCIPAL -->
-  <header class="app-header">
-    <div class="header-container">
-      <h1>R-LABS</h1>
-      <p class="subtitle">Laboratorios Remotos</p>
-    </div>
-    <div id="user-info" class="user-info hidden">
-      <span id="user-display-name"></span>
-      <button onclick="mostrarEditarPerfil()" class="btn-secondary btn-sm">Mi Perfil</button>
-      <button onclick="cerrarSesion()" class="btn-danger btn-sm">Cerrar Sesión</button>
-    </div>
-  </header>
+  <!-- VISTA DE LOGIN INDEPENDIENTE -->
+  <section id="view-login" class="login-wrapper view">
+    <div class="login-card">
+      <div class="brand-header text-center">
+        <div class="brand-logo-icon">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        </div>
+        <h1 class="brand-title">UNIVTEC</h1>
+        <p class="brand-subtitle">Universidad Tecnológica Nacional</p>
+        <span class="badge-tag">Plataforma de Laboratorios Remotos</span>
+      </div>
 
-  <main class="main-container">
-
-    <!-- VISTA 1: LOGIN -->
-    <section id="view-login" class="card view">
-      <h2>Iniciar Sesión</h2>
-      <form id="form-login" onsubmit="iniciarSesion(event)">
+      <form id="form-login" onsubmit="iniciarSesion(event)" class="login-form">
+        <h2>Iniciar Sesión</h2>
         <div class="form-group">
-          <label>Correo Electrónico:</label>
-          <input type="email" id="login-email" required placeholder="ejemplo@estudiante.edu">
+          <label>Correo Institucional</label>
+          <input type="email" id="login-email" required placeholder="usuario@univtec.edu">
         </div>
         <div class="form-group">
-          <label>Contraseña:</label>
-          <input type="password" id="login-password" required>
+          <label>Contraseña</label>
+          <input type="password" id="login-password" required placeholder="••••••••">
         </div>
-        <button type="submit" class="btn-primary full-width">Ingresar</button>
+        <button type="submit" class="btn-primary full-width">Acceder al Portal</button>
       </form>
-    </section>
-
-    <!-- VISTA 2: ESTUDIANTE Y PROFESOR (PANEL PRINCIPAL DE RESERVAS) -->
-    <section id="view-estudiante" class="view hidden">
-      
-      <!-- SELECCIÓN DE CURSO Y NAVEGACIÓN -->
-      <div class="card">
-        <h2>Disponibilidad del Laboratorio</h2>
-        <div class="form-group">
-          <label>Seleccionar Curso:</label>
-          <select id="estudiante-cursos" onchange="actualizarTodoEstudiante()"></select>
-        </div>
-        <div class="form-group">
-          <label>Filtrar por RLAB:</label>
-          <select id="estudiante-maquinas-filtro" onchange="sincronizarFiltroYFormulario()"></select>
-        </div>
-      </div>
-
-      <!-- CALENDARIO SEMANAL INTERACTIVO (24 HORAS) -->
-      <div class="card margin-top">
-        <div class="calendar-header">
-          <button onclick="cambiarSemana(-1)" class="btn-secondary btn-sm">&laquo; Sem. Anterior</button>
-          <h3 id="calendar-week-title">Semana Actual</h3>
-          <button onclick="cambiarSemana(1)" class="btn-secondary btn-sm">Sem. Siguiente &raquo;</button>
-        </div>
-        
-        <div class="calendar-legend">
-          <span class="legend-item"><span class="badge badge-available"></span> Disponible (Haz clic)</span>
-          <span class="legend-item"><span class="badge badge-occupied"></span> Ocupado</span>
-          <span class="legend-item"><span class="badge badge-own"></span> Tu Reserva</span>
-        </div>
-
-        <div class="table-responsive calendar-scroll-container">
-          <table class="calendar-table">
-            <thead>
-              <tr>
-                <th>Hora</th>
-                <th>Lun</th>
-                <th>Mar</th>
-                <th>Mié</th>
-                <th>Jue</th>
-                <th>Vie</th>
-                <th>Sáb</th>
-                <th>Dom</th>
-              </tr>
-            </thead>
-            <tbody id="calendar-body"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- FORMULARIO DE RESERVA -->
-      <div class="card margin-top" id="seccion-formulario-reserva">
-        <h3>Realizar una Reserva</h3>
-        <div class="form-group">
-          <label>Máquina a Reservar:</label>
-          <select id="estudiante-maquinas-form"></select>
-        </div>
-        <div class="form-group">
-          <label>Fecha y Hora de Inicio:</label>
-          <input type="datetime-local" id="reserva-fecha-inicio" required>
-        </div>
-        <div class="form-group">
-          <label>Duración:</label>
-          <select id="reserva-duracion">
-            <option value="1">1 Hora</option>
-            <option value="2">2 Horas</option>
-          </select>
-        </div>
-        <button onclick="crearReserva()" class="btn-primary full-width">Confirmar Reserva</button>
-      </div>
-
-      <!-- MIS RESERVAS ACTIVAS -->
-      <div class="card margin-top">
-        <h3>Mis Reservas Activas y Futuras</h3>
-        <div id="lista-mis-reservas" class="reservas-grid"></div>
-      </div>
-
-      <!-- TARJETA HISTÓRICO DEL CURSO (EXCLUSIVO PARA PROFESORES) -->
-      <div class="card margin-top hidden" id="card-historico-profesor">
-        <h3>Histórico de Reservas del Curso</h3>
-        <div class="table-responsive">
-          <table>
-            <thead>
-              <tr>
-                <th>Usuario</th>
-                <th>Máquina</th>
-                <th>Inicio</th>
-                <th>Fin</th>
-              </tr>
-            </thead>
-            <tbody id="tabla-profesor-body"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <!-- VISTA 3: ADMINISTRADOR -->
-    <section id="view-admin" class="view hidden">
-      <div class="tabs">
-        <button class="tab-btn active" onclick="cambiarTabAdmin('admin-cursos')">Cursos y RLABs</button>
-        <button class="tab-btn" onclick="cambiarTabAdmin('admin-usuarios')">Usuarios y Asignación</button>
-        <button class="tab-btn" onclick="cambiarTabAdmin('admin-csv')">Gestión CSV</button>
-        <button class="tab-btn" onclick="cambiarTabAdmin('admin-historial')">Histórico</button>
-      </div>
-
-      <!-- TAB 1: CURSOS Y MAQUINAS -->
-      <div id="admin-cursos" class="tab-content active card">
-        <h3>Crear Curso</h3>
-        <form onsubmit="guardarCurso(event)">
-          <div class="form-group"><label>Nombre del Curso:</label><input type="text" id="curso-nombre" required></div>
-          <div class="form-group"><label>Código del Curso:</label><input type="text" id="curso-codigo" required></div>
-          <button type="submit" class="btn-primary">Guardar Curso</button>
-        </form>
-
-        <hr class="divider">
-        <h3>Configurar RLAB (Máquinas Virtuales)</h3>
-        <form onsubmit="guardarMaquina(event)">
-          <div class="form-group">
-            <label>Curso:</label>
-            <select id="maquina-curso-select" required></select>
-          </div>
-          <div class="form-group">
-            <label>Número de RLAB (1 al 4):</label>
-            <input type="number" id="maquina-numero" min="1" max="4" required>
-          </div>
-          <div class="form-group">
-            <label>ID AnyDesk:</label>
-            <input type="text" id="maquina-anydesk-id" required placeholder="ej. 123 456 789">
-          </div>
-          <div class="form-group">
-            <label>Contraseña AnyDesk:</label>
-            <input type="text" id="maquina-anydesk-pass" required>
-          </div>
-          <button type="submit" class="btn-primary">Asignar / Actualizar RLAB</button>
-        </form>
-      </div>
-
-      <!-- TAB 2: USUARIOS Y ASIGNACIÓN -->
-      <div id="admin-usuarios" class="tab-content card hidden">
-        <h3>Agregar Alumno / Profesor</h3>
-        <form onsubmit="crearUsuarioAdmin(event)">
-          <div class="form-group"><label>Correo:</label><input type="email" id="user-email" required></div>
-          <div class="form-group"><label>Contraseña:</label><input type="text" id="user-password" value="RLabs2026!" required></div>
-          <div class="form-group"><label>Nombre Completo:</label><input type="text" id="user-nombre" required></div>
-          <div class="form-group">
-            <label>Rol:</label>
-            <select id="user-rol">
-              <option value="estudiante">Estudiante</option>
-              <option value="profesor">Profesor</option>
-            </select>
-          </div>
-          <button type="submit" class="btn-primary">Crear Usuario</button>
-        </form>
-
-        <hr class="divider">
-        <h3>Asignar Alumno a Curso</h3>
-        <form onsubmit="asignarAlumnoCurso(event)">
-          <div class="form-group"><label>Seleccionar Curso:</label><select id="asignar-curso-select"></select></div>
-          <div class="form-group"><label>Correo de Alumno:</label><input type="email" id="asignar-alumno-email" required placeholder="correo@alumno.com"></div>
-          <button type="submit" class="btn-primary">Asignar a Curso</button>
-        </form>
-      </div>
-
-      <!-- TAB 3: GESTIÓN CSV -->
-      <div id="admin-csv" class="tab-content card hidden">
-        <h3>Carga Masiva de Alumnos (CSV)</h3>
-        <p class="small-text">Formato CSV: <code>correo,contraseña,nombre_completo</code></p>
-        <div class="form-group"><label>Curso Destino:</label><select id="csv-curso-select"></select></div>
-        <div class="form-group"><input type="file" id="csv-file-agregar" accept=".csv"></div>
-        <button onclick="procesarCSVAgregar()" class="btn-primary">Inscribir Alumnos vía CSV</button>
-
-        <hr class="divider">
-        <h3>Eliminar Alumnos de Curso (CSV)</h3>
-        <p class="small-text">Formato CSV: <code>correo</code> (un correo por línea)</p>
-        <div class="form-group"><label>Curso Target:</label><select id="csv-curso-eliminar-select"></select></div>
-        <div class="form-group"><input type="file" id="csv-file-eliminar" accept=".csv"></div>
-        <button onclick="procesarCSVEliminar()" class="btn-danger">Eliminar Alumnos vía CSV</button>
-      </div>
-
-      <!-- TAB 4: HISTORIAL -->
-      <div id="admin-historial" class="tab-content card hidden">
-        <h3>Historial General de Reservas</h3>
-        <div class="form-group">
-          <label>Filtrar por Curso:</label>
-          <select id="historial-curso-select" onchange="cargarHistorial()"></select>
-        </div>
-        <div class="table-responsive">
-          <table>
-            <thead>
-              <tr>
-                <th>Usuario</th>
-                <th>Máquina</th>
-                <th>Inicio</th>
-                <th>Fin</th>
-              </tr>
-            </thead>
-            <tbody id="tabla-historial-body"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <!-- MODAL PERFIL -->
-    <div id="modal-perfil" class="modal hidden">
-      <div class="modal-content card">
-        <h3>Mi Perfil</h3>
-        <div class="form-group"><label>Nombre Completo:</label><input type="text" id="perfil-nombre"></div>
-        <div class="form-group"><label>Nueva Contraseña:</label><input type="password" id="perfil-pass" placeholder="Dejar en blanco para conservar"></div>
-        <button onclick="guardarPerfil()" class="btn-primary">Actualizar Datos</button>
-        <button onclick="cerrarModalPerfil()" class="btn-secondary">Cancelar</button>
-      </div>
     </div>
+  </section>
 
-  </main>
+  <!-- APPLICACIÓN PRINCIPAL (LAYOUT CON SIDEBAR Y MAIN CONTENT) -->
+  <div id="app-layout" class="app-container">
+
+    <!-- SIDEBAR DE NAVEGACIÓN -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-logo">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        </div>
+        <div>
+          <h1 class="sidebar-title">UNIVTEC</h1>
+          <p class="sidebar-sub">Maestrías en Electrónica y Robótica</p>
+        </div>
+      </div>
+
+      <nav class="sidebar-menu">
+        <div class="menu-label">Navegación Principal</div>
+        <a href="#" class="nav-item active">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          <span>Dashboard & RLABs</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="status-indicator">
+          <span class="status-dot"></span>
+          <span>Sistemas Operativos (24/7)</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <div class="main-wrapper">
+
+      <!-- ENCABEZADO SUPERIOR / HEADER -->
+      <header class="top-header">
+        <div class="header-title-group">
+          <h2>Laboratorios Virtuales & Remotos</h2>
+          <p>Maestría en Electrónica y Robótica Industrial</p>
+        </div>
+
+        <div id="user-info" class="user-profile-header hidden">
+          <div class="user-avatar">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+          <div class="user-details">
+            <span id="user-display-name" class="user-name">Usuario</span>
+          </div>
+          <button onclick="mostrarEditarPerfil()" class="btn-icon" title="Mi Perfil">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </button>
+          <button onclick="cerrarSesion()" class="btn-icon btn-logout" title="Cerrar Sesión">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- ÁREA DE CONTENIDO DINÁMICO -->
+      <main class="content-body">
+
+        <!-- VISTA 2: ESTUDIANTE Y PROFESOR (PANEL PRINCIPAL) -->
+        <section id="view-estudiante" class="view hidden">
+          
+          <!-- BANNER DE BIENVENIDA Y FILTROS -->
+          <div class="card welcome-card">
+            <div class="card-header-flex">
+              <div>
+                <span class="pill-badge">● Live Hardware Feed</span>
+                <h3 class="card-title margin-top-xs">Disponibilidad de Laboratorios en Tiempo Real</h3>
+                <p class="card-subtitle">Selecciona tu programa académico y la máquina RLAB a consultar.</p>
+              </div>
+            </div>
+
+            <div class="filters-grid">
+              <div class="form-group">
+                <label>Programa / Curso Activo:</label>
+                <select id="estudiante-cursos" onchange="actualizarTodoEstudiante()"></select>
+              </div>
+              <div class="form-group">
+                <label>Filtrar por Máquina RLAB:</label>
+                <select id="estudiante-maquinas-filtro" onchange="sincronizarFiltroYFormulario()"></select>
+              </div>
+            </div>
+          </div>
+
+          <!-- CALENDARIO SEMANAL INTERACTIVO (24 HORAS) -->
+          <div class="card margin-top">
+            <div class="calendar-top-bar">
+              <div>
+                <h3 id="calendar-week-title" class="card-title">Semana de Reservas</h3>
+                <p class="card-subtitle">Haz clic en cualquier bloque libre para agendar inmediatamente.</p>
+              </div>
+              <div class="calendar-nav-buttons">
+                <button onclick="cambiarSemana(-1)" class="btn-secondary btn-sm">&laquo; Ant.</button>
+                <button onclick="cambiarSemana(1)" class="btn-secondary btn-sm">Sig. &raquo;</button>
+              </div>
+            </div>
+
+            <div class="calendar-legend">
+              <span class="legend-item"><span class="badge badge-available"></span> Libre (Disponible)</span>
+              <span class="legend-item"><span class="badge badge-occupied"></span> Ocupado</span>
+              <span class="legend-item"><span class="badge badge-own"></span> Tu Reserva</span>
+            </div>
+
+            <div class="table-responsive calendar-scroll-container">
+              <table class="calendar-table">
+                <thead>
+                  <tr>
+                    <th>Hora UTC</th>
+                    <th>Lun</th>
+                    <th>Mar</th>
+                    <th>Mié</th>
+                    <th>Jue</th>
+                    <th>Vie</th>
+                    <th>Sáb</th>
+                    <th>Dom</th>
+                  </tr>
+                </thead>
+                <tbody id="calendar-body"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- FORMULARIO DE RESERVA -->
+          <div class="card margin-top" id="seccion-formulario-reserva">
+            <div class="section-title-group">
+              <h3>Agendar Nueva Sesión de Laboratorio</h3>
+              <p class="card-subtitle">Asegúrate de seleccionar la máquina RLAB y el horario correcto.</p>
+            </div>
+            <div class="form-row-grid">
+              <div class="form-group">
+                <label>Máquina RLAB Destino:</label>
+                <select id="estudiante-maquinas-form"></select>
+              </div>
+              <div class="form-group">
+                <label>Fecha y Hora de Inicio:</label>
+                <input type="datetime-local" id="reserva-fecha-inicio" required>
+              </div>
+              <div class="form-group">
+                <label>Duración Estimada:</label>
+                <select id="reserva-duracion">
+                  <option value="1">1 Hora (Estándar)</option>
+                  <option value="2">2 Horas (Extenso)</option>
+                </select>
+              </div>
+            </div>
+            <button onclick="crearReserva()" class="btn-primary">Confirmar Reserva de Laboratorio</button>
+          </div>
+
+          <!-- MIS RESERVAS ACTIVAS Y FUTURAS -->
+          <div class="card margin-top">
+            <div class="section-title-group">
+              <h3>Mis Reservas Activas y Próximas</h3>
+              <p class="card-subtitle">Conéctate vía AnyDesk cuando tu turno esté activo o cancela si lo necesitas.</p>
+            </div>
+            <div id="lista-mis-reservas" class="reservas-grid"></div>
+          </div>
+
+          <!-- TARJETA HISTÓRICO DEL CURSO (SOLO PROFESORES) -->
+          <div class="card margin-top hidden" id="card-historico-profesor">
+            <div class="section-title-group">
+              <h3>Histórico de Reservas del Curso (Vista Profesor)</h3>
+              <p class="card-subtitle">Listado completo de alumnos y turnos registrados.</p>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Estudiante</th>
+                    <th>Máquina RLAB</th>
+                    <th>Hora Inicio</th>
+                    <th>Hora Fin</th>
+                  </tr>
+                </thead>
+                <tbody id="tabla-profesor-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- VISTA 3: ADMINISTRADOR -->
+        <section id="view-admin" class="view hidden">
+          <div class="card">
+            <h2 class="card-title">Panel de Administración General</h2>
+            <p class="card-subtitle">Gestión de oferta académica, hardware RLAB e inscripción de usuarios.</p>
+            
+            <div class="tabs">
+              <button class="tab-btn active" onclick="cambiarTabAdmin('admin-cursos')">Cursos & RLABs</button>
+              <button class="tab-btn" onclick="cambiarTabAdmin('admin-usuarios')">Usuarios & Asignación</button>
+              <button class="tab-btn" onclick="cambiarTabAdmin('admin-csv')">Carga Masiva CSV</button>
+              <button class="tab-btn" onclick="cambiarTabAdmin('admin-historial')">Historial Global</button>
+            </div>
+          </div>
+
+          <!-- TAB 1: CURSOS Y MAQUINAS -->
+          <div id="admin-cursos" class="tab-content active card margin-top">
+            <h3>Crear Nuevo Curso</h3>
+            <form onsubmit="guardarCurso(event)" class="form-row-grid">
+              <div class="form-group"><label>Nombre del Curso:</label><input type="text" id="curso-nombre" placeholder="ej. Robótica Industrial II" required></div>
+              <div class="form-group"><label>Código de Curso:</label><input type="text" id="curso-codigo" placeholder="ej. MROB-202" required></div>
+              <div class="form-group align-end"><button type="submit" class="btn-primary full-width">Guardar Curso</button></div>
+            </form>
+
+            <hr class="divider">
+            <h3>Configurar RLAB (Hardware Remoto)</h3>
+            <form onsubmit="guardarMaquina(event)">
+              <div class="form-row-grid">
+                <div class="form-group">
+                  <label>Curso Relacionado:</label>
+                  <select id="maquina-curso-select" required></select>
+                </div>
+                <div class="form-group">
+                  <label>Número de RLAB (1 - 4):</label>
+                  <input type="number" id="maquina-numero" min="1" max="4" required placeholder="1">
+                </div>
+              </div>
+              <div class="form-row-grid">
+                <div class="form-group">
+                  <label>ID de Acceso AnyDesk:</label>
+                  <input type="text" id="maquina-anydesk-id" required placeholder="123 456 789">
+                </div>
+                <div class="form-group">
+                  <label>Contraseña AnyDesk:</label>
+                  <input type="text" id="maquina-anydesk-pass" required placeholder="••••••••">
+                </div>
+              </div>
+              <button type="submit" class="btn-primary">Asignar / Actualizar RLAB</button>
+            </form>
+          </div>
+
+          <!-- TAB 2: USUARIOS Y ASIGNACIÓN -->
+          <div id="admin-usuarios" class="tab-content card margin-top hidden">
+            <h3>Alta de Usuario Individual</h3>
+            <form onsubmit="crearUsuarioAdmin(event)">
+              <div class="form-row-grid">
+                <div class="form-group"><label>Correo Electrónico:</label><input type="email" id="user-email" required placeholder="correo@univtec.edu"></div>
+                <div class="form-group"><label>Contraseña Temporal:</label><input type="text" id="user-password" value="RLabs2026!" required></div>
+              </div>
+              <div class="form-row-grid">
+                <div class="form-group"><label>Nombre Completo:</label><input type="text" id="user-nombre" required placeholder="Dr. Alejandro Gómez"></div>
+                <div class="form-group">
+                  <label>Rol de Sistema:</label>
+                  <select id="user-rol">
+                    <option value="estudiante">Estudiante</option>
+                    <option value="profesor">Profesor</option>
+                  </select>
+                </div>
+              </div>
+              <button type="submit" class="btn-primary">Crear Usuario</button>
+            </form>
+
+            <hr class="divider">
+            <h3>Asignar Estudiante a Curso</h3>
+            <form onsubmit="asignarAlumnoCurso(event)" class="form-row-grid">
+              <div class="form-group"><label>Seleccionar Curso:</label><select id="asignar-curso-select"></select></div>
+              <div class="form-group"><label>Correo del Estudiante:</label><input type="email" id="asignar-alumno-email" required placeholder="estudiante@univtec.edu"></div>
+              <div class="form-group align-end"><button type="submit" class="btn-primary full-width">Asignar a Curso</button></div>
+            </form>
+          </div>
+
+          <!-- TAB 3: GESTIÓN CSV -->
+          <div id="admin-csv" class="tab-content card margin-top hidden">
+            <h3>Inscripción Masiva vía CSV</h3>
+            <p class="card-subtitle">Formato requerido: <code>correo,contraseña,nombre_completo</code></p>
+            <div class="form-row-grid margin-top-xs">
+              <div class="form-group"><label>Curso Destino:</label><select id="csv-curso-select"></select></div>
+              <div class="form-group"><label>Archivo CSV:</label><input type="file" id="csv-file-agregar" accept=".csv"></div>
+            </div>
+            <button onclick="procesarCSVAgregar()" class="btn-primary">Procesar Inscripciones</button>
+
+            <hr class="divider">
+            <h3>Desinscripción Masiva vía CSV</h3>
+            <p class="card-subtitle">Formato requerido: <code>correo</code> (un correo por línea)</p>
+            <div class="form-row-grid margin-top-xs">
+              <div class="form-group"><label>Curso Objetivos:</label><select id="csv-curso-eliminar-select"></select></div>
+              <div class="form-group"><label>Archivo CSV:</label><input type="file" id="csv-file-eliminar" accept=".csv"></div>
+            </div>
+            <button onclick="procesarCSVEliminar()" class="btn-danger">Eliminar Alumnos Seleccionados</button>
+          </div>
+
+          <!-- TAB 4: HISTORIAL GLOBAL -->
+          <div id="admin-historial" class="tab-content card margin-top hidden">
+            <h3>Historial de Reservas del Sistema</h3>
+            <div class="form-group">
+              <label>Seleccionar Curso:</label>
+              <select id="historial-curso-select" onchange="cargarHistorial()"></select>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Usuario</th>
+                    <th>Máquina RLAB</th>
+                    <th>Inicio</th>
+                    <th>Fin</th>
+                  </tr>
+                </thead>
+                <tbody id="tabla-historial-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- MODAL EDITAR PERFIL -->
+        <div id="modal-perfil" class="modal hidden">
+          <div class="modal-content card">
+            <h3>Actualizar Mi Perfil</h3>
+            <p class="card-subtitle">Modifica tus datos de acceso institucional.</p>
+            <div class="form-group margin-top-xs"><label>Nombre Completo:</label><input type="text" id="perfil-nombre"></div>
+            <div class="form-group"><label>Nueva Contraseña:</label><input type="password" id="perfil-pass" placeholder="Dejar en blanco para conservar actual"></div>
+            <div class="modal-actions">
+              <button onclick="guardarPerfil()" class="btn-primary">Guardar Cambios</button>
+              <button onclick="cerrarModalPerfil()" class="btn-secondary">Cancelar</button>
+            </div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
 
   <script src="app.js"></script>
 </body>
