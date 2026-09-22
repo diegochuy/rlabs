@@ -62,7 +62,7 @@ button {
 .btn-sm { padding: 0.4rem 0.8rem; font-size: 0.85rem; }
 .full-width { width: 100%; }
 
-/* ESTILOS DEL CALENDARIO SEMANAL */
+/* ESTILOS DEL CALENDARIO SEMANAL 24 HORAS */
 .calendar-header {
   display: flex;
   justify-content: space-between;
@@ -84,10 +84,26 @@ button {
 .badge-occupied { background-color: #ffebe6; border: 1px solid #de350b; }
 .badge-own { background-color: #deebff; border: 1px solid #0052cc; }
 
+/* SCROLL Y ENCABEZADOS FIJOS PARA 24 HORAS */
+.calendar-scroll-container {
+  max-height: 550px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
 .calendar-table {
   width: 100%;
   border-collapse: collapse;
   text-align: center;
+}
+
+.calendar-table th {
+  position: sticky;
+  top: 0;
+  background-color: #f4f5f7;
+  z-index: 2;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
 }
 
 .calendar-table th, .calendar-table td {
@@ -95,8 +111,6 @@ button {
   padding: 0.5rem;
   font-size: 0.85rem;
 }
-
-.calendar-table th { background-color: #f4f5f7; }
 
 .slot-cell {
   height: 42px;

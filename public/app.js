@@ -75,40 +75,57 @@ async function cargarPerfil() {
   currentProfile = profile;
   document.getElementById("user-display-name").innerText = profile.nombre_completo || profile.email;
 
-  if (profile.rol === "estudiante") {
+  if (profile.rol === "estudiante" || profile.rol === "profesor") {
     mostrarVista("view-estudiante");
+    
+    // Si es profesor, mostrar tarjeta adicional del histórico del curso
+    const cardHist = document.getElementById("card-historico-profesor");
+    if (profile.rol === "profesor") {
+      cardHist.classList.remove("hidden");
+    } else {
+      cardHist.classList.add("hidden");
+    }
+
     await cargarCursosEstudiante();
     await cargarMisReservas();
   } else if (profile.rol === "admin") {
     mostrarVista("view-admin");
     await cargarCursosAdmin();
-  } else if (profile.rol === "profesor") {
-    mostrarVista("view-profesor");
-    await cargarCursosProfesor();
   }
 }
 
-// --- FLUJO ESTUDIANTE Y CALENDARIO SEMANAL ---
+// --- FLUJO ESTUDIANTE Y PROFESOR (CALENDARIO) ---
 async function cargarCursosEstudiante() {
-  const { data } = await supabaseClient
-    .from("curso_estudiantes")
-    .select("cursos(id, nombre, codigo)")
-    .eq("usuario_id", currentUser.id);
+  let cursosLista = [];
+
+  if (currentProfile.rol === "profesor") {
+    // El profesor puede ver todos los cursos de la plataforma
+    const { data: cursos } = await supabaseClient.from("cursos").select("id, nombre, codigo");
+    cursosLista = cursos || [];
+  } else {
+    // El estudiante solo ve sus cursos asignados
+    const { data } = await supabaseClient
+      .from("curso_estudiantes")
+      .select("cursos(id, nombre, codigo)")
+      .eq("usuario_id", currentUser.id);
+
+    if (data) {
+      cursosLista = data.map(item => item.cursos).filter(Boolean);
+    }
+  }
 
   const select = document.getElementById("estudiante-cursos");
   select.innerHTML = "";
-  if (!data || data.length === 0) {
-    select.innerHTML = "<option value=''>Sin cursos asignados</option>";
+  if (cursosLista.length === 0) {
+    select.innerHTML = "<option value=''>Sin cursos disponibles</option>";
     return;
   }
 
-  data.forEach(item => {
-    if (item.cursos) {
-      const opt = document.createElement("option");
-      opt.value = item.cursos.id;
-      opt.innerText = `${item.cursos.nombre} (${item.cursos.codigo})`;
-      select.appendChild(opt);
-    }
+  cursosLista.forEach(c => {
+    const opt = document.createElement("option");
+    opt.value = c.id;
+    opt.innerText = `${c.nombre} (${c.codigo})`;
+    select.appendChild(opt);
   });
 
   await actualizarTodoEstudiante();
@@ -117,6 +134,9 @@ async function cargarCursosEstudiante() {
 async function actualizarTodoEstudiante() {
   await cargarMaquinasDelCurso();
   await cargarCalendarioSemanal();
+  if (currentProfile?.rol === "profesor") {
+    await cargarHistorialProfesor();
+  }
 }
 
 async function cargarMaquinasDelCurso() {
@@ -150,6 +170,18 @@ async function cargarMaquinasDelCurso() {
   }
 }
 
+function sincronizarFiltroYFormulario() {
+  const filtroVal = document.getElementById("estudiante-maquinas-filtro").value;
+  const formSelect = document.getElementById("estudiante-maquinas-form");
+
+  // Si hay un RLAB específico seleccionado en el filtro, ponerlo en el formulario
+  if (filtroVal && filtroVal !== "TODAS") {
+    formSelect.value = filtroVal;
+  }
+
+  cargarCalendarioSemanal();
+}
+
 function cambiarSemana(delta) {
   semanaOffset += delta;
   cargarCalendarioSemanal();
@@ -158,7 +190,7 @@ function cambiarSemana(delta) {
 function obtenerLunesSemana(offset = 0) {
   const d = new Date();
   const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Ajustar para que Lunes sea día 1
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
   const lunes = new Date(d.setDate(diff));
   lunes.setDate(lunes.getDate() + (offset * 7));
   lunes.setHours(0,0,0,0);
@@ -178,7 +210,7 @@ async function cargarCalendarioSemanal() {
   document.getElementById("calendar-week-title").innerText = 
     `Semana: ${lunes.toLocaleDateString()} - ${domingo.toLocaleDateString()}`;
 
-  // Consultar reservas de la semana para este curso
+  // Consultar reservas de la semana
   let query = supabaseClient
     .from("reservas")
     .select("*, maquinas(numero_rlab)")
@@ -192,11 +224,11 @@ async function cargarCalendarioSemanal() {
 
   const { data: reservas } = await query;
 
-  // Construir la matriz de horas (8am a 8pm)
+  // Construir la matriz de horas (24 HORAS: 00:00 a 23:00)
   const tbody = document.getElementById("calendar-body");
   tbody.innerHTML = "";
 
-  for (let hora = 8; hora <= 20; hora++) {
+  for (let hora = 0; hora <= 23; hora++) {
     const tr = document.createElement("tr");
     
     // Columna de Hora
@@ -234,7 +266,6 @@ async function cargarCalendarioSemanal() {
       } else {
         td.classList.add("slot-available");
         td.innerText = "Disponible";
-        // Al hacer clic, llena la fecha/hora en el formulario
         td.onclick = () => preseleccionarHorario(fechaCelda);
       }
 
@@ -245,11 +276,19 @@ async function cargarCalendarioSemanal() {
 }
 
 function preseleccionarHorario(fecha) {
-  // Formatear para <input type="datetime-local"> (YYYY-MM-DDTHH:mm)
+  // Formatear para <input type="datetime-local">
   const tzoffset = (new Date()).getTimezoneOffset() * 60000;
   const localISOTime = (new Date(fecha - tzoffset)).toISOString().slice(0, 16);
   
   document.getElementById("reserva-fecha-inicio").value = localISOTime;
+
+  // Sincronizar máquina del filtro al formulario
+  const filtroVal = document.getElementById("estudiante-maquinas-filtro").value;
+  const formSelect = document.getElementById("estudiante-maquinas-form");
+  if (filtroVal && filtroVal !== "TODAS") {
+    formSelect.value = filtroVal;
+  }
+
   document.getElementById("seccion-formulario-reserva").scrollIntoView({ behavior: 'smooth' });
 }
 
@@ -259,7 +298,7 @@ async function crearReserva() {
   const fechaInicioInput = document.getElementById("reserva-fecha-inicio").value;
   const duracionHoras = parseInt(document.getElementById("reserva-duracion").value);
 
-  if (!fechaInicioInput || !maquinaId) return alert("Complete la fecha y la máquina");
+  if (!fechaInicioInput || !maquinaId) return alert("Complete la fecha y seleccione la máquina");
 
   const fechaInicio = new Date(fechaInicioInput);
   const fechaFin = new Date(fechaInicio.getTime() + duracionHoras * 60 * 60 * 1000);
@@ -278,6 +317,9 @@ async function crearReserva() {
     alert("¡Reserva realizada exitosamente!");
     await cargarMisReservas();
     await cargarCalendarioSemanal();
+    if (currentProfile?.rol === "profesor") {
+      await cargarHistorialProfesor();
+    }
   }
 }
 
@@ -293,7 +335,7 @@ async function cargarMisReservas() {
 
   const ahora = new Date();
 
-  if (reservas) {
+  if (reservas && reservas.length > 0) {
     reservas.forEach(r => {
       const inicio = new Date(r.fecha_inicio);
       const fin = new Date(r.fecha_fin);
@@ -305,10 +347,33 @@ async function cargarMisReservas() {
         <h4>${r.cursos?.nombre || 'Curso'} - RLAB ${r.maquinas?.numero_rlab}</h4>
         <p><strong>Inicio:</strong> ${inicio.toLocaleString()}</p>
         <p><strong>Fin:</strong> ${fin.toLocaleString()}</p>
-        ${esActiva ? `<button onclick="conectarAnydesk('${r.maquinas?.anydesk_id}', '${r.maquinas?.anydesk_password}')" class="btn-connect">CONECTAR AHORA</button>` : `<p class="small-text">Inactiva</p>`}
+        ${esActiva ? `<button onclick="conectarAnydesk('${r.maquinas?.anydesk_id}', '${r.maquinas?.anydesk_password}')" class="btn-connect">CONECTAR AHORA</button>` : `<p class="small-text">Programada</p>`}
+        <button onclick="eliminarReserva('${r.id}')" class="btn-danger btn-sm full-width margin-top">Cancelar Reserva</button>
       `;
       contenedor.appendChild(div);
     });
+  } else {
+    contenedor.innerHTML = "<p>No tienes reservas activas o futuras.</p>";
+  }
+}
+
+async function eliminarReserva(reservaId) {
+  if (!confirm("¿Estás seguro de que deseas cancelar esta reserva?")) return;
+
+  const { error } = await supabaseClient
+    .from("reservas")
+    .delete()
+    .eq("id", reservaId);
+
+  if (error) {
+    alert("Error al cancelar la reserva: " + error.message);
+  } else {
+    alert("Reserva cancelada con éxito.");
+    await cargarMisReservas();
+    await cargarCalendarioSemanal();
+    if (currentProfile?.rol === "profesor") {
+      await cargarHistorialProfesor();
+    }
   }
 }
 
@@ -320,6 +385,37 @@ async function conectarAnydesk(id, password) {
     alert(`Contraseña de AnyDesk: ${password}\nCopiela manualmente.`);
   }
   window.location.href = `anydesk://${id.replace(/\s+/g, '')}`;
+}
+
+async function cargarHistorialProfesor() {
+  if (currentProfile?.rol !== "profesor") return;
+  const cursoId = document.getElementById("estudiante-cursos").value;
+  if (!cursoId) return;
+
+  const { data } = await supabaseClient
+    .from("reservas")
+    .select("*, profiles(nombre_completo, email), maquinas(numero_rlab)")
+    .eq("curso_id", cursoId)
+    .order("fecha_inicio", { ascending: false });
+
+  const tbody = document.getElementById("tabla-profesor-body");
+  if (!tbody) return;
+
+  tbody.innerHTML = "";
+  if (data && data.length > 0) {
+    data.forEach(r => {
+      tbody.innerHTML += `
+        <tr>
+          <td>${r.profiles?.nombre_completo || r.profiles?.email || 'N/A'}</td>
+          <td>RLAB ${r.maquinas?.numero_rlab || 'N/A'}</td>
+          <td>${new Date(r.fecha_inicio).toLocaleString()}</td>
+          <td>${new Date(r.fecha_fin).toLocaleString()}</td>
+        </tr>
+      `;
+    });
+  } else {
+    tbody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>Sin reservas en este curso</td></tr>";
+  }
 }
 
 // --- FLUJO ADMINISTRADOR ---
@@ -458,41 +554,6 @@ async function cargarHistorial() {
       tbody.innerHTML += `
         <tr>
           <td>${r.profiles?.nombre_completo || r.profiles?.email}</td>
-          <td>RLAB ${r.maquinas?.numero_rlab}</td>
-          <td>${new Date(r.fecha_inicio).toLocaleString()}</td>
-          <td>${new Date(r.fecha_fin).toLocaleString()}</td>
-        </tr>
-      `;
-    });
-  }
-}
-
-async function cargarCursosProfesor() {
-  const { data: cursos } = await supabaseClient.from("cursos").select("*");
-  const select = document.getElementById("profesor-curso-select");
-  select.innerHTML = "";
-  if (cursos) {
-    cursos.forEach(c => {
-      select.innerHTML += `<option value="${c.id}">${c.nombre}</option>`;
-    });
-  }
-  cargarHistorialProfesor();
-}
-
-async function cargarHistorialProfesor() {
-  const curso_id = document.getElementById("profesor-curso-select").value;
-  const { data } = await supabaseClient
-    .from("reservas")
-    .select("*, profiles(nombre_completo), maquinas(numero_rlab)")
-    .eq("curso_id", curso_id);
-
-  const tbody = document.getElementById("tabla-profesor-body");
-  tbody.innerHTML = "";
-  if (data) {
-    data.forEach(r => {
-      tbody.innerHTML += `
-        <tr>
-          <td>${r.profiles?.nombre_completo}</td>
           <td>RLAB ${r.maquinas?.numero_rlab}</td>
           <td>${new Date(r.fecha_inicio).toLocaleString()}</td>
           <td>${new Date(r.fecha_fin).toLocaleString()}</td>
