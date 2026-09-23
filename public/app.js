@@ -29,11 +29,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 function mostrarVista(vistaId) {
   document.querySelectorAll(".view").forEach(v => v.classList.add("hidden"));
   document.getElementById(vistaId).classList.remove("hidden");
+  document.getElementById(`app-layout`).classList.remove("hidden"); // habilitar el layout principal
   
   if (vistaId !== "view-login") {
     document.getElementById("user-info").classList.remove("hidden");
   } else {
     document.getElementById("user-info").classList.add("hidden");
+    document.getElementById(`app-layout`).classList.add("hidden"); // oculata el layout principal
   }
 }
 
