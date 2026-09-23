@@ -329,6 +329,7 @@ body {
   border: 1px solid #a7f3d0;
 }
 
+.padding-all { padding: 1.5rem; }
 .margin-top { margin-top: 1.5rem; }
 .margin-top-xs { margin-top: 0.5rem; }
 .hidden { display: none !important; }

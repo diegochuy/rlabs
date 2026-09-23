@@ -75,7 +75,8 @@ async function cargarPerfil() {
   }
 
   currentProfile = profile;
-  document.getElementById("user-display-name").innerText = profile.nombre_completo || profile.email;
+  document.getElementById("user-display-name").innerText = profile.email;
+  document.getElementById("sidebar-title-name").innerText = profile.nombre_completo.toUpperCase().split(" ")[0]; // Mostrar solo el primer nombre en el sidebar
 
   if (profile.rol === "estudiante" || profile.rol === "profesor") {
     mostrarVista("view-estudiante");
