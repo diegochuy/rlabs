@@ -522,11 +522,12 @@ async function procesarCSVAgregar() {
   const lines = text.split("\n").filter(l => l.trim().length > 0);
   const students = lines.map(line => {
     const [Carnet, Apellido, Nombres,Correo,Rol] = line.split(",");
-    return { email: Correo?.trim(), password: Carnet?.trim(), nombre_completo: `${Nombres} ${Apellido}`?.trim(),rol: Rol?.trim() };
+    return { email: Correo?.trim().slice(1, -1), password: Carnet?.trim().slice(1, -1), nombre_completo: `${Nombres} ${Apellido}`?.trim().slice(1, -1),rol: Rol?.trim().slice(1, -1) };
   })
   .filter(student => student.rol === "Alumno")
   .map(({ rol, ...studentData }) => studentData);
   
+  //alert(`students: ${students}`);
 
   const res = await fetch("/api/admin", {
     method: "POST",

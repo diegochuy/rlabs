@@ -54,17 +54,16 @@ export default async function handler(req, res) {
 
     // CARGA MASIVA CSV (AGREGAR ALUMNOS)
     if (action === 'BATCH_CREATE_STUDENTS') {
+      //alert(`ya en BATCH_CREATE_STUDENTS`);
       const { students, curso_id } = payload;
       let agregados = "alumnos creados:\n";
       let addedCount = 0;
 
       for (const student of students) {
         if (!student.email){
-          agregados += `No se creó a ${student.nombre_completo} por no tener correo ${student.email}.\n`;
           continue;
         } 
 
-        agregados += `por crear a ${student.nombre_completo} con correo ${student.email}.\n`;
         let userId = null;
 
         const { data: userData, error: userError } = await supabaseAdmin.auth.admin.createUser({
@@ -74,38 +73,40 @@ export default async function handler(req, res) {
           user_metadata: { nombre_completo: student.nombre_completo || student.email, rol: 'Estudiante' }
         });
 
-        if (userError) {
+        agregados += `Creado > ${student.nombre_completo} con correo ${student.email}.\n`;
+        /* if (userError) {
           agregados += `UserError : ${student.email}.\n`;
           throw userError; //probando
-        }
+        } */
 
-        /* if (userData?.user) {
+        if (userData?.user) {
           userId = userData.user.id;
         } else if (userError) {
           // Si el usuario ya existe en Auth, obtenemos su ID
           const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
           const found = existingUsers?.users?.find(u => u.email === student.email);
           if (found) userId = found.id;
-        } */
+        }
 
-        /* if (userId) {
-          const { error: profileError } =await supabaseAdmin.from('profiles').upsert({
+        if (userId) {
+          await supabaseAdmin.from('profiles').upsert({
             id: userId,
             email: student.email,
             nombre_completo: student.nombre_completo || student.email,
             rol: 'Estudiante'
           });
 
-          if (profileError) throw profileError;// probando
+          /* if (profileError) throw profileError;// probando */
 
           await supabaseAdmin.from('curso_estudiantes').upsert({
             curso_id,
             usuario_id: userId
           });
 
+          agregados += `Agregado a curso > ${curso_id}.\n\n`;
           addedCount++;
-        } */
-       const { error: profileError } =await supabaseAdmin.from('profiles').upsert({
+        }
+       /* const { error: profileError } =await supabaseAdmin.from('profiles').upsert({
             id: userData.user.id,
             email: student.email,
             nombre_completo: student.nombre_completo || student.email,
@@ -115,17 +116,17 @@ export default async function handler(req, res) {
           if (profileError) {
             agregados += `ProfileError : ${student.email}.\n`;
             throw profileError;// probando
-          }
+          } */
 
           /* await supabaseAdmin.from('curso_estudiantes').upsert({
             curso_id,
             usuario_id: userId
-          }); */
+          });
 
-          addedCount++;
+          addedCount++; */
       }
 
-      return res.status(200).json({ success: true, added: `${agregados} \n\n cantidad agregados${addedCount}` });
+      return res.status(200).json({ success: true, added: `${agregados} \n\n cantidad Operados: ${addedCount}` });
     }
 
     // CARGA MASIVA CSV (ELIMINAR ALUMNOS)
