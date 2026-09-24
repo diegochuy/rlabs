@@ -510,12 +510,23 @@ async function procesarCSVAgregar() {
   const curso_id = document.getElementById("csv-curso-select").value;
   if (!fileInput.files[0]) return alert("Seleccione un archivo CSV");
 
+  /* 
   const text = await fileInput.files[0].text();
   const lines = text.split("\n").filter(l => l.trim().length > 0);
   const students = lines.map(line => {
     const [email, password, nombre_completo] = line.split(",");
     return { email: email?.trim(), password: password?.trim(), nombre_completo: nombre_completo?.trim() };
-  });
+  }); 
+  */
+  const text = await fileInput.files[0].text();
+  const lines = text.split("\n").filter(l => l.trim().length > 0);
+  const students = lines.map(line => {
+    const [Carnet, Apellido, Nombres,Correo,Rol] = line.split(",");
+    return { email: Correo?.trim(), password: Carnet?.trim(), nombre_completo: `${Nombres} ${Apellido}`?.trim(),rol: Rol?.trim() };
+  })
+  .filter(student => student.rol === "Alumno")
+  .map(({ rol, ...studentData }) => studentData);
+  
 
   const res = await fetch("/api/admin", {
     method: "POST",
@@ -532,7 +543,26 @@ async function procesarCSVEliminar() {
   if (!fileInput.files[0]) return alert("Seleccione un archivo CSV");
 
   const text = await fileInput.files[0].text();
+  /* 
   const emails = text.split("\n").map(l => l.trim()).filter(l => l.length > 0);
+ */
+
+  const emails = text
+  .split("\n")
+  .filter(l => l.trim().length > 0) // Quitamos líneas vacías
+  .map(line => {
+    // Desestructuramos el CSV para obtener el correo (índice 3) y el rol (índice 4)
+    const [,,, correo, rol] = line.split(",");
+    return {
+      email: correo?.trim(),
+      rol: rol?.trim()
+    };
+  })
+  // Filtramos para quedarnos solo con los que tienen Rol de Alumno
+  .filter(item => item.rol === "Alumno")
+  // Extraemos únicamente el string del email
+  .map(item => item.email);
+  
 
   const res = await fetch("/api/admin", {
     method: "POST",
