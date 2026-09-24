@@ -55,10 +55,14 @@ export default async function handler(req, res) {
     // CARGA MASIVA CSV (AGREGAR ALUMNOS)
     if (action === 'BATCH_CREATE_STUDENTS') {
       const { students, curso_id } = payload;
+      let agregados = "";
       let addedCount = 0;
 
       for (const student of students) {
-        if (!student.email) continue;
+        if (!student.email){
+          agregados += `No se agregó a ${student.nombre_completo} por no tener correo ${student.email}.\n`;
+          continue;
+        } 
         
         let userId = null;
 
@@ -68,6 +72,8 @@ export default async function handler(req, res) {
           email_confirm: true,
           user_metadata: { nombre_completo: student.nombre_completo || student.email, rol: 'Estudiante' }
         });
+
+        if (userError) throw userError; //probando
 
         if (userData?.user) {
           userId = userData.user.id;
@@ -79,12 +85,14 @@ export default async function handler(req, res) {
         }
 
         if (userId) {
-          await supabaseAdmin.from('profiles').upsert({
+          const { error: profileError } =await supabaseAdmin.from('profiles').upsert({
             id: userId,
             email: student.email,
             nombre_completo: student.nombre_completo || student.email,
             rol: 'Estudiante'
           });
+
+          if (profileError) throw profileError;// probando
 
           await supabaseAdmin.from('curso_estudiantes').upsert({
             curso_id,
@@ -95,7 +103,7 @@ export default async function handler(req, res) {
         }
       }
 
-      return res.status(200).json({ success: true, added: addedCount });
+      return res.status(200).json({ success: true, added: `${agregados} \n\n cantidad agregados${addedCount}` });
     }
 
     // CARGA MASIVA CSV (ELIMINAR ALUMNOS)
