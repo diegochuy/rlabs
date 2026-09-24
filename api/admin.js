@@ -66,7 +66,7 @@ export default async function handler(req, res) {
           email: student.email,
           password: student.password || 'RLabs2026!',
           email_confirm: true,
-          user_metadata: { nombre_completo: student.nombre_completo || student.email, rol: 'estudiante' }
+          user_metadata: { nombre_completo: student.nombre_completo || student.email, rol: 'Estudiante' }
         });
 
         if (userData?.user) {
