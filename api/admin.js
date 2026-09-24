@@ -83,7 +83,7 @@ export default async function handler(req, res) {
             id: userId,
             email: student.email,
             nombre_completo: student.nombre_completo || student.email,
-            rol: 'estudiante'
+            rol: 'Estudiante'
           });
 
           await supabaseAdmin.from('curso_estudiantes').upsert({
