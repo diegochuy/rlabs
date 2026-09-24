@@ -70,25 +70,27 @@ export default async function handler(req, res) {
           email: student.email,
           password: student.password || 'RLabs2026!',
           email_confirm: true,
-          user_metadata: { nombre_completo: student.nombre_completo || student.email, rol: 'Estudiante' }
+          user_metadata: { nombre_completo: student.nombre_completo || student.email, rol: 'estudiante' }
         });
 
         agregados += `Creado > ${student.nombre_completo} con correo ${student.email}.\n`;
-        /* if (userError) {
+        if (userError) {
           agregados += `UserError : ${student.email}.\n`;
           throw userError; //probando
-        } */
+        } 
 
-        if (userData?.user) {
+        /* if (userData?.user) {
           userId = userData.user.id;
         } else if (userError) {
           // Si el usuario ya existe en Auth, obtenemos su ID
           const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
           const found = existingUsers?.users?.find(u => u.email === student.email);
           if (found) userId = found.id;
-        }
+        } */
 
-        if (userId) {
+
+
+        /* if (userId) {
           await supabaseAdmin.from('profiles').upsert({
             id: userId,
             email: student.email,
@@ -96,8 +98,7 @@ export default async function handler(req, res) {
             rol: 'Estudiante'
           });
 
-          /* if (profileError) throw profileError;// probando */
-
+          
           await supabaseAdmin.from('curso_estudiantes').upsert({
             curso_id,
             usuario_id: userId
@@ -105,25 +106,27 @@ export default async function handler(req, res) {
 
           agregados += `Agregado a curso > ${curso_id}.\n\n`;
           addedCount++;
-        }
-       /* const { error: profileError } =await supabaseAdmin.from('profiles').upsert({
+        } */
+        
+        /* if (profileError) throw profileError;// probando */
+       const { error: profileError } =await supabaseAdmin.from('profiles').upsert({
             id: userData.user.id,
             email: student.email,
             nombre_completo: student.nombre_completo || student.email,
-            rol: 'Estudiante'
+            rol: 'estudiante'
           });
 
           if (profileError) {
             agregados += `ProfileError : ${student.email}.\n`;
             throw profileError;// probando
-          } */
+          } 
 
-          /* await supabaseAdmin.from('curso_estudiantes').upsert({
+           /* await supabaseAdmin.from('curso_estudiantes').upsert({
             curso_id,
             usuario_id: userId
-          });
+          }); */
 
-          addedCount++; */
+          addedCount++;
       }
 
       return res.status(200).json({ success: true, added: `${agregados} \n\n cantidad Operados: ${addedCount}` });
