@@ -522,7 +522,7 @@ async function procesarCSVAgregar() {
   const lines = text.split("\n").filter(l => l.trim().length > 0);
   const students = lines.map(line => {
     const [Carnet, Apellido, Nombres,Correo,Rol] = line.split(",");
-    return { email: Correo?.trim().slice(1, -1), password: Carnet?.trim().slice(1, -1), nombre_completo: `${Nombres} ${Apellido}`?.trim().slice(1, -1),rol: Rol?.trim().slice(1, -1) };
+    return { email: Correo?.trim().slice(1, -1), password: Carnet?.trim().slice(1, -1), nombre_completo: `${Nombres.trim().slice(1, -1)} ${Apellido.trim().slice(1, -1)}`?.trim(),rol: Rol?.trim().slice(1, -1) };
   })
   .filter(student => student.rol === "Alumno")
   .map(({ rol, ...studentData }) => studentData);
