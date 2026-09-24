@@ -535,7 +535,8 @@ async function procesarCSVAgregar() {
     body: JSON.stringify({ action: "BATCH_CREATE_STUDENTS", payload: { students, curso_id } })
   });
   const data = await res.json();
-  alert(`Alumnos procesados e inscritos: ${data.added}`);
+  if (data.error) alert("Error: " + data.error);
+  else alert(`Alumnos procesados e inscritos: ${data.added}`);
 }
 
 async function procesarCSVEliminar() {

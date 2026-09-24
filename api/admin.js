@@ -73,11 +73,13 @@ export default async function handler(req, res) {
           user_metadata: { nombre_completo: student.nombre_completo || student.email, rol: 'estudiante' }
         });
 
-        agregados += `Creado > ${student.nombre_completo} con correo ${student.email}.\n`;
         if (userError) {
           agregados += `UserError : ${student.email}.\n`;
-          throw userError; //probando
-        } 
+          //throw userError; //probando
+          continue; // Continuar con el siguiente estudiante si hay un error al crear el usuario
+        } else{
+          agregados += `Creado > ${student.email}.\n`;
+        }
 
         /* if (userData?.user) {
           userId = userData.user.id;
@@ -118,7 +120,11 @@ export default async function handler(req, res) {
 
           if (profileError) {
             agregados += `ProfileError : ${student.email}.\n`;
-            throw profileError;// probando
+            //throw profileError;// probando
+            continue; // Continuar con el siguiente estudiante si hay un error al crear el perfil
+          }else{
+            agregados += `-----Agregado > ${student.email}.\n`;
+            
           } 
 
            /* await supabaseAdmin.from('curso_estudiantes').upsert({
